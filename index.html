@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kretzonizer</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header, footer {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 10px 0;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-group {
+            padding: 10px;
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+
+        .control-row {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        label {
+            width: 100px;
+            display: inline-block;
+        }
+
+        input[type="range"], input[type="number"] {
+            margin: 0 10px;
+        }
+
+        select {
+            padding: 5px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        /* Step Sequencer styles */
+        .sequencer-container {
+            margin-bottom: 20px;
+        }
+        .sequencer {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 5px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+
+        .step {
+            aspect-ratio: 1;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .step.active {
+            background: #4CAF50;
+        }
+
+        .step.current {
+            border: 2px solid white;
+        }
+
+        .note-display {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: white;
+        }
+
+        /* Velocity row */
+        .velocity-container {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 5px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+
+        .velocity-step {
+            width: 100%;
+            height: 40px;
+            background: #444;
+            border-radius: 4px;
+            cursor: ns-resize;
+            position: relative;
+        }
+        .velocity-step.active {
+            background: #888;
+        }
+        .velocity-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .transport {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #bpm {
+            width: 60px;
+            padding: 5px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .value-display {
+            width: 50px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kretzonizer</h1>
+        <div>Written by Jonas Lund 2024</div>
+    </header>
+
+    <div class="container">
+        
+        <div class="controls">
+            <!-- LFO Controls -->
+            <div class="control-group">
+                <h3>LFO</h3>
+                <div class="control-row">
+                    <label>Rate:</label>
+                    <input type="range" id="lfoRate" min="0" max="20" step="0.1" value="0">
+                    <span class="value-display" id="lfoRateValue">0 Hz</span>
+                </div>
+                <!-- LFO Amount can be negative -->
+                <div class="control-row">
+                    <label>Amount:</label>
+                    <input type="range" id="lfoAmount" min="-5000" max="5000" step="1" value="0">
+                    <span class="value-display" id="lfoAmountValue">0</span>
+                </div>
+                <div class="control-row">
+                    <label>Target:</label>
+                    <select id="lfoTarget">
+                        <option value="cutoff" selected>Cutoff</option>
+                        <option value="pitch">Pitch</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Synth Controls + Master Volume -->
+            <div class="control-group">
+                <h3>Synth Controls</h3>
+                <div class="control-row">
+                    <label>Waveform:</label>
+                    <select id="waveform">
+                        <option value="sawtooth">Sawtooth</option>
+                        <option value="square">Square</option>
+                        <option value="noise">White Noise</option>
+                        <!-- NEW: Sine wave -->
+                        <option value="sine">Sine</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>Cutoff:</label>
+                    <input type="range" id="cutoff" min="20" max="20000" step="1" value="2000">
+                    <span class="value-display" id="cutoffValue">2000 Hz</span>
+                </div>
+                <div class="control-row">
+                    <label>Resonance:</label>
+                    <input type="range" id="resonance" min="0" max="30" step="1" value="0">
+                    <span class="value-display" id="resonanceValue">0</span>
+                </div>
+                <!-- Master Volume -->
+                <div class="control-row">
+                    <label>Volume:</label>
+                    <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.8">
+                    <span class="value-display" id="masterVolumeValue">0.80</span>
+                </div>
+            </div>
+
+            <!-- Amplitude Envelope and Filter Envelope -->
+            <div class="control-group">
+                <h3>Envelopes</h3>
+                <!-- Amp Envelope (ADSR) -->
+                <div class="control-row">
+                    <strong>Amp Env</strong>
+                </div>
+                <div class="control-row">
+                    <label>Attack:</label>
+                    <input type="range" id="attack" min="0" max="2" step="0.01" value="0.1">
+                    <span class="value-display" id="attackValue">0.1s</span>
+                </div>
+                <div class="control-row">
+                    <label>Decay:</label>
+                    <input type="range" id="decay" min="0" max="2" step="0.01" value="0.2">
+                    <span class="value-display" id="decayValue">0.2s</span>
+                </div>
+                <div class="control-row">
+                    <label>Sustain:</label>
+                    <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.5">
+                    <span class="value-display" id="sustainValue">0.5</span>
+                </div>
+                <div class="control-row">
+                    <label>Release:</label>
+                    <input type="range" id="release" min="0" max="2" step="0.01" value="0.5">
+                    <span class="value-display" id="releaseValue">0.5s</span>
+                </div>
+
+                <!-- Filter Envelope (ADSR) -->
+                <div class="control-row" style="margin-top:15px;">
+                    <strong>Filter Env</strong>
+                </div>
+                <div class="control-row">
+                    <label>F.Attack:</label>
+                    <input type="range" id="fAttack" min="0" max="2" step="0.01" value="0.1">
+                    <span class="value-display" id="fAttackValue">0.1s</span>
+                </div>
+                <div class="control-row">
+                    <label>F.Decay:</label>
+                    <input type="range" id="fDecay" min="0" max="2" step="0.01" value="0.2">
+                    <span class="value-display" id="fDecayValue">0.2s</span>
+                </div>
+                <div class="control-row">
+                    <label>F.Sustain:</label>
+                    <input type="range" id="fSustain" min="0" max="1" step="0.01" value="0.5">
+                    <span class="value-display" id="fSustainValue">0.5</span>
+                </div>
+                <div class="control-row">
+                    <label>F.Release:</label>
+                    <input type="range" id="fRelease" min="0" max="2" step="0.01" value="0.5">
+                    <span class="value-display" id="fReleaseValue">0.5s</span>
+                </div>
+                <!-- Envelope Amount for Filter (can be negative now) -->
+                <div class="control-row">
+                    <label>F.Amount:</label>
+                    <input type="range" id="fAmount" min="-10000" max="10000" step="1" value="1000">
+                    <span class="value-display" id="fAmountValue">1000</span>
+                </div>
+            </div>
+
+            <!-- PITCH Envelope (ADSR) -->
+            <div class="control-group">
+                <h3>Pitch Env</h3>
+                <div class="control-row">
+                    <label>P.Attack:</label>
+                    <input type="range" id="pAttack" min="0" max="2" step="0.01" value="0.0">
+                    <span class="value-display" id="pAttackValue">0.0s</span>
+                </div>
+                <div class="control-row">
+                    <label>P.Decay:</label>
+                    <input type="range" id="pDecay" min="0" max="2" step="0.01" value="0.0">
+                    <span class="value-display" id="pDecayValue">0.0s</span>
+                </div>
+                <div class="control-row">
+                    <label>P.Sustain:</label>
+                    <input type="range" id="pSustain" min="0" max="1" step="0.01" value="0.0">
+                    <span class="value-display" id="pSustainValue">0</span>
+                </div>
+                <div class="control-row">
+                    <label>P.Release:</label>
+                    <input type="range" id="pRelease" min="0" max="2" step="0.01" value="0.0">
+                    <span class="value-display" id="pReleaseValue">0.0s</span>
+                </div>
+                <div class="control-row">
+                    <label>P.Amount:</label>
+                    <input type="range" id="pAmount" min="-1200" max="1200" step="1" value="0">
+                    <span class="value-display" id="pAmountValue">0 semitones</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transport Controls -->
+        <div class="transport">
+            <button id="playBtn">Play</button>
+            <button id="stopBtn">Stop</button>
+            <button id="randomizeBtn">Randomize Sequencer</button>
+            <!-- NEW: Randomize Synth Values -->
+            <button id="randomSynthBtn">Randomize Synth</button>
+            <button id="exportWavBtn">Export to WAV</button>
+            <label>BPM: <input type="number" id="bpm" value="120" min="40" max="300"></label>
+        </div>
+
+        <!-- Step Sequencer Grid -->
+        <div class="sequencer-container">
+            <div id="sequencer" class="sequencer"></div>
+        </div>
+
+        <!-- Velocity row for the 16 steps -->
+        <div class="velocity-container" id="velocityContainer"></div>
+    </div>
+
+    <footer>
+        <p>Enjoy your music creation!</p>
+    </footer>
+
+    <script>
+        class StepSequencer {
+            constructor() {
+                // Basic Setup
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.isPlaying = false;
+                this.currentStep = 0;
+                // Each step => { active, note, velocity }
+                this.steps = [];       
+                this.tempo = 120;
+                this.stepInterval = (60 / this.tempo) / 4; // 16 steps => each step is 1/16 note
+
+                // NOTE RANGE: from C-2 to C5
+                this.notes = {};
+                // Build note table for octaves from -2 up to +5
+                let noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+                noteNames.forEach((note, i) => {
+                    for(let octave = -2; octave <= 5; octave++){
+                        const freq = 440 * Math.pow(
+                            2,
+                            ((octave - 4) * 12 + i - 9) / 12
+                        );
+                        this.notes[`${note}${octave}`] = freq;
+                    }
+                });
+
+                // Default LFO Target
+                this.lfoTarget = 'cutoff';
+
+                // Audio Routing
+                this.setupAudio();
+
+                // Build 16 steps in the UI (notes)
+                this.initializeSteps();
+
+                // Build 16 steps in velocity row
+                this.initializeVelocity();
+
+                // Connect the UI controls
+                this.setupControls();
+            }
+
+            setupAudio() {
+                // Master Filter
+                this.filter = this.audioContext.createBiquadFilter();
+                this.filter.type = 'lowpass';
+                this.filter.frequency.value = 2000;
+                this.filter.Q.value = 0;
+
+                // Master Volume
+                this.mainGain = this.audioContext.createGain();
+                this.mainGain.gain.value = 0.8; // default volume
+
+                // Connect filter -> mainGain -> destination
+                this.filter.connect(this.mainGain);
+                this.mainGain.connect(this.audioContext.destination);
+
+                // LFO Oscillator + Gain
+                this.lfo = this.audioContext.createOscillator();
+                this.lfoGain = this.audioContext.createGain();
+                this.lfo.frequency.value = 0; 
+                this.lfoGain.gain.value = 0;
+
+                // LFO always goes into lfoGain; we'll route lfoGain to pitch or cutoff
+                this.lfo.connect(this.lfoGain);
+                this.lfo.start();
+            }
+
+            initializeSteps() {
+                const sequencer = document.getElementById('sequencer');
+                const allNotes = Object.keys(this.notes);
+
+                for (let i = 0; i < 16; i++) {
+                    // Each step in the main row
+                    const step = document.createElement('button');
+                    step.className = 'step';
+                    
+                    const noteDisplay = document.createElement('div');
+                    noteDisplay.className = 'note-display';
+                    step.appendChild(noteDisplay);
+
+                    // Default data
+                    this.steps[i] = {
+                        active: false,
+                        note: null,
+                        velocity: 100 // default velocity
+                    };
+
+                    let isDragging = false;
+                    let startY = 0;
+                    let startNoteIndex = 0;
+
+                    // Mousedown => if not active, activate it
+                    step.addEventListener('mousedown', (e) => {
+                        if (!this.steps[i].active) {
+                            this.steps[i].active = true;
+                            // default note is 'C-2'
+                            this.steps[i].note = 'C-2';
+                            step.classList.add('active');
+                            this.updateNoteDisplay(i);
+                        }
+                        // For note dragging
+                        isDragging = true;
+                        startY = e.clientY;
+                        if(this.steps[i].note){
+                            startNoteIndex = allNotes.indexOf(this.steps[i].note);
+                        }
+                    });
+
+                    // Right-click => remove note
+                    step.addEventListener('contextmenu', (e) => {
+                        e.preventDefault(); 
+                        this.steps[i].active = false;
+                        this.steps[i].note = null;
+                        step.classList.remove('active');
+                        this.updateNoteDisplay(i);
+                    });
+
+                    // Mousemove => note dragging
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        
+                        const deltaY = startY - e.clientY;
+                        const semitones = Math.floor(deltaY / 10);
+                        
+                        let newIndex = startNoteIndex + semitones;
+                        newIndex = Math.max(0, Math.min(newIndex, allNotes.length - 1));
+
+                        this.steps[i].note = allNotes[newIndex];
+                        this.updateNoteDisplay(i);
+                    });
+
+                    // Mouseup => stop dragging
+                    document.addEventListener('mouseup', () => {
+                        isDragging = false;
+                    });
+
+                    // Double-click => remove note
+                    step.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        this.steps[i].active = false;
+                        this.steps[i].note = null;
+                        step.classList.remove('active');
+                        this.updateNoteDisplay(i);
+                    });
+
+                    sequencer.appendChild(step);
+                }
+            }
+
+            initializeVelocity() {
+                // A separate row for velocity 
+                const velocityContainer = document.getElementById('velocityContainer');
+
+                for (let i = 0; i < 16; i++) {
+                    const vStep = document.createElement('div');
+                    vStep.className = 'velocity-step';
+
+                    const vVal = document.createElement('div');
+                    vVal.className = 'velocity-value';
+                    vVal.textContent = '100'; // default
+
+                    vStep.appendChild(vVal);
+
+                    // We’ll track dragging (similar to notes)
+                    let isVDragging = false;
+                    let startY = 0;
+                    let startVelocity = 100;
+
+                    vStep.addEventListener('mousedown', (e) => {
+                        isVDragging = true;
+                        startY = e.clientY;
+                        startVelocity = this.steps[i].velocity;
+                        vStep.classList.add('active');
+                    });
+
+                    document.addEventListener('mousemove', (e2) => {
+                        if(!isVDragging) return;
+                        const deltaY = startY - e2.clientY;
+                        // each 2 px => 1 velocity step
+                        const offset = Math.floor(deltaY / 2);
+                        let newVel = startVelocity + offset;
+                        newVel = Math.max(0, Math.min(127, newVel));
+                        this.steps[i].velocity = newVel;
+                        vVal.textContent = String(newVel);
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if(isVDragging){
+                            isVDragging = false;
+                            vStep.classList.remove('active');
+                        }
+                    });
+
+                    velocityContainer.appendChild(vStep);
+                }
+            }
+
+            updateNoteDisplay(stepIndex) {
+                const stepEl = document.querySelectorAll('.step')[stepIndex];
+                const noteDisplay = stepEl.querySelector('.note-display');
+                const { active, note } = this.steps[stepIndex];
+                noteDisplay.textContent = (active && note) ? note : '';
+            }
+
+            setupControls() {
+                // Play / Stop
+                document.getElementById('playBtn').addEventListener('click', () => this.play());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+
+                // Randomize Sequencer
+                document.getElementById('randomizeBtn').addEventListener('click', () => this.randomizeSteps());
+
+                // Randomize Synth
+                document.getElementById('randomSynthBtn').addEventListener('click', () => this.randomizeSynth());
+
+                // Export to WAV
+                document.getElementById('exportWavBtn').addEventListener('click', () => this.exportToWav());
+
+                // BPM
+                document.getElementById('bpm').addEventListener('change', (e) => {
+                    this.tempo = parseInt(e.target.value);
+                    this.stepInterval = (60 / this.tempo) / 4;
+                });
+
+                // LFO
+                document.getElementById('lfoRate').addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.lfo.frequency.setValueAtTime(val, this.audioContext.currentTime);
+                    document.getElementById('lfoRateValue').textContent = `${val} Hz`;
+                });
+
+                document.getElementById('lfoAmount').addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.lfoGain.gain.setValueAtTime(val, this.audioContext.currentTime);
+                    document.getElementById('lfoAmountValue').textContent = val.toString();
+                });
+
+                document.getElementById('lfoTarget').addEventListener('change', (e) => {
+                    this.lfoTarget = e.target.value;
+                });
+
+                // Master Volume
+                document.getElementById('masterVolume').addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.mainGain.gain.setValueAtTime(val, this.audioContext.currentTime);
+                    document.getElementById('masterVolumeValue').textContent = val.toFixed(2);
+                });
+
+                // Filter (Cutoff & Resonance)
+                document.getElementById('cutoff').addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.filter.frequency.setValueAtTime(val, this.audioContext.currentTime);
+                    document.getElementById('cutoffValue').textContent = `${val} Hz`;
+                });
+
+                document.getElementById('resonance').addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    this.filter.Q.setValueAtTime(val, this.audioContext.currentTime);
+                    document.getElementById('resonanceValue').textContent = val.toString();
+                });
+
+                // Amp Envelope
+                ['attack','decay','sustain','release'].forEach(param => {
+                    const slider = document.getElementById(param);
+                    slider.addEventListener('input', () => {
+                        const value = slider.value;
+                        document.getElementById(param + 'Value').textContent = 
+                            param === 'sustain' ? value : value + 's';
+                    });
+                });
+
+                // Filter Envelope
+                ['fAttack','fDecay','fSustain','fRelease'].forEach(param => {
+                    const slider = document.getElementById(param);
+                    slider.addEventListener('input', () => {
+                        const value = slider.value;
+                        if(param === 'fSustain'){
+                            document.getElementById(param + 'Value').textContent = value;
+                        } else {
+                            document.getElementById(param + 'Value').textContent = value + 's';
+                        }
+                    });
+                });
+
+                const fAmountSlider = document.getElementById('fAmount');
+                fAmountSlider.addEventListener('input', () => {
+                    const val = parseFloat(fAmountSlider.value);
+                    document.getElementById('fAmountValue').textContent = val.toString();
+                });
+
+                // Pitch Envelope
+                ['pAttack','pDecay','pSustain','pRelease'].forEach(param => {
+                    const slider = document.getElementById(param);
+                    slider.addEventListener('input', () => {
+                        const value = slider.value;
+                        if(param === 'pSustain'){
+                            document.getElementById(param + 'Value').textContent = value;
+                        } else {
+                            document.getElementById(param + 'Value').textContent = value + 's';
+                        }
+                    });
+                });
+
+                const pAmountSlider = document.getElementById('pAmount');
+                pAmountSlider.addEventListener('input', () => {
+                    const val = parseFloat(pAmountSlider.value);
+                    document.getElementById('pAmountValue').textContent = val + ' semitones';
+                });
+            }
+
+            play() {
+                if (this.isPlaying) return;
+                
+                // Resume in case audio context is suspended
+                this.audioContext.resume().then(() => {
+                    this.isPlaying = true;
+                    this.currentStep = 0;
+                    this.playStep();
+                });
+            }
+
+            playStep() {
+                if (!this.isPlaying) return;
+
+                const steps = document.querySelectorAll('.step');
+                steps.forEach(step => step.classList.remove('current'));
+                steps[this.currentStep].classList.add('current');
+
+                // If this step is active, play its note
+                const { active, note, velocity } = this.steps[this.currentStep];
+                if (active && note) {
+                    this.playNote(note, velocity);
+                }
+
+                // Advance step after interval
+                this.currentStep = (this.currentStep + 1) % 16;
+                setTimeout(() => this.playStep(), this.stepInterval * 1000);
+            }
+
+            stop() {
+                this.isPlaying = false;
+                this.currentStep = 0;
+                document.querySelectorAll('.step').forEach(step => step.classList.remove('current'));
+            }
+
+            // Play a single "note" or noise, with velocity
+            playNote(noteKey, velocity) {
+                const now = this.audioContext.currentTime;
+                const waveform = document.getElementById('waveform').value;
+
+                // Envelope values for amplitude
+                const attack = parseFloat(document.getElementById('attack').value);
+                const decay = parseFloat(document.getElementById('decay').value);
+                const sustain = parseFloat(document.getElementById('sustain').value);
+                const release = parseFloat(document.getElementById('release').value);
+                const velFactor = velocity / 127;
+
+                // Filter Envelope
+                const fAttack = parseFloat(document.getElementById('fAttack').value);
+                const fDecay = parseFloat(document.getElementById('fDecay').value);
+                const fSustain = parseFloat(document.getElementById('fSustain').value);
+                const fRelease = parseFloat(document.getElementById('fRelease').value);
+                const fAmount = parseFloat(document.getElementById('fAmount').value);
+                const baseCutoff = parseFloat(document.getElementById('cutoff').value);
+
+                // LFO routing
+                this.lfoGain.disconnect();
+
+                if(waveform === 'noise') {
+                    // White Noise approach...
+                    const sampleRate = this.audioContext.sampleRate;
+                    const bufferSize = sampleRate * 2;
+                    const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for(let i=0; i<bufferSize; i++){
+                        output[i] = Math.random() * 2 - 1;  // [-1..1]
+                    }
+
+                    const noiseSource = this.audioContext.createBufferSource();
+                    noiseSource.buffer = noiseBuffer;
+                    noiseSource.loop = true;
+
+                    const ampGain = this.audioContext.createGain();
+                    ampGain.gain.setValueAtTime(0, now);
+                    ampGain.gain.linearRampToValueAtTime(1 * velFactor, now + attack);
+                    ampGain.gain.linearRampToValueAtTime(sustain * velFactor, now + attack + decay);
+                    ampGain.gain.linearRampToValueAtTime(0, now + attack + decay + release);
+
+                    noiseSource.connect(ampGain);
+                    ampGain.connect(this.filter);
+
+                    if (this.lfoTarget === 'pitch') {
+                        // does nothing for noise
+                    } else {
+                        this.lfoGain.connect(this.filter.frequency);
+                    }
+
+                    // Filter Envelope
+                    this.filter.frequency.cancelScheduledValues(now);
+                    this.filter.frequency.setValueAtTime(baseCutoff, now);
+                    const filterPeak = baseCutoff + fAmount;
+                    this.filter.frequency.linearRampToValueAtTime(filterPeak, now + fAttack);
+                    const filterSustain = baseCutoff + (fAmount * fSustain);
+                    this.filter.frequency.linearRampToValueAtTime(filterSustain, now + fAttack + fDecay);
+                    this.filter.frequency.linearRampToValueAtTime(
+                        baseCutoff, 
+                        now + fAttack + fDecay + fRelease
+                    );
+
+                    noiseSource.start(now);
+                    noiseSource.stop(now + attack + decay + release + 0.1);
+
+                } else {
+                    // Normal oscillator
+                    const frequency = this.notes[noteKey] || 440;
+
+                    // Pitch Envelope
+                    const pAttack = parseFloat(document.getElementById('pAttack').value);
+                    const pDecay = parseFloat(document.getElementById('pDecay').value);
+                    const pSustain = parseFloat(document.getElementById('pSustain').value);
+                    const pRelease = parseFloat(document.getElementById('pRelease').value);
+                    const pAmount = parseFloat(document.getElementById('pAmount').value);
+
+                    const oscillator = this.audioContext.createOscillator();
+                    oscillator.type = waveform;
+
+                    // Envelope freq
+                    oscillator.frequency.cancelScheduledValues(now);
+                    oscillator.frequency.setValueAtTime(frequency, now);
+
+                    const semitoneToMultiplier = (semi) => Math.pow(2, semi / 12);
+                    const freqPeak = frequency * semitoneToMultiplier(pAmount);
+                    oscillator.frequency.linearRampToValueAtTime(freqPeak, now + pAttack);
+                    const freqSustain = frequency + (freqPeak - frequency) * pSustain;
+                    oscillator.frequency.linearRampToValueAtTime(freqSustain, now + pAttack + pDecay);
+                    oscillator.frequency.linearRampToValueAtTime(
+                        frequency, 
+                        now + pAttack + pDecay + pRelease
+                    );
+
+                    // Amp ADSR
+                    const ampGain = this.audioContext.createGain();
+                    ampGain.gain.setValueAtTime(0, now);
+                    ampGain.gain.linearRampToValueAtTime(1 * velFactor, now + attack); 
+                    ampGain.gain.linearRampToValueAtTime(sustain * velFactor, now + attack + decay); 
+                    ampGain.gain.linearRampToValueAtTime(0, now + attack + decay + release);
+
+                    oscillator.connect(ampGain);
+                    ampGain.connect(this.filter);
+
+                    if (this.lfoTarget === 'pitch') {
+                        this.lfoGain.connect(oscillator.frequency);
+                    } else {
+                        this.lfoGain.connect(this.filter.frequency);
+                    }
+
+                    // Filter Envelope
+                    this.filter.frequency.cancelScheduledValues(now);
+                    this.filter.frequency.setValueAtTime(baseCutoff, now);
+                    const filterPeak = baseCutoff + fAmount;
+                    this.filter.frequency.linearRampToValueAtTime(filterPeak, now + fAttack);
+                    const filterSustain = baseCutoff + (fAmount * fSustain);
+                    this.filter.frequency.linearRampToValueAtTime(filterSustain, now + fAttack + fDecay);
+                    this.filter.frequency.linearRampToValueAtTime(
+                        baseCutoff, 
+                        now + fAttack + fDecay + fRelease
+                    );
+
+                    oscillator.start(now);
+                    oscillator.stop(now + attack + decay + release + 0.1);
+                }
+            }
+
+            // Randomize all steps in the sequencer
+            randomizeSteps() {
+                const allNotes = Object.keys(this.notes);
+                for(let i=0; i<16; i++){
+                    const stepObj = this.steps[i];
+                    // 50% chance step is active
+                    stepObj.active = Math.random() > 0.5;
+                    if(stepObj.active){
+                        const randomIndex = Math.floor(Math.random() * allNotes.length);
+                        stepObj.note = allNotes[randomIndex];
+                    } else {
+                        stepObj.note = null;
+                    }
+                    // random velocity 0..127
+                    stepObj.velocity = Math.floor(Math.random() * 128);
+
+                    // Update visuals
+                    const stepEl = document.querySelectorAll('.step')[i];
+                    if(stepObj.active){
+                        stepEl.classList.add('active');
+                    } else {
+                        stepEl.classList.remove('active');
+                    }
+                    this.updateNoteDisplay(i);
+
+                    // Update velocity row
+                    const vStepEl = document.querySelectorAll('.velocity-step')[i];
+                    const vValEl = vStepEl.querySelector('.velocity-value');
+                    vValEl.textContent = stepObj.velocity.toString();
+                }
+            }
+
+            // NEW: Randomize Synth parameters only
+            randomizeSynth() {
+                // Utility: random float in [min, max], optionally with steps
+                const randFloat = (min, max) => Math.random() * (max - min) + min;
+                const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+                // 1) Waveform: pick from the 4 waveforms
+                const waveforms = ['sawtooth','square','noise','sine'];
+                const randomWave = waveforms[randInt(0, waveforms.length - 1)];
+                document.getElementById('waveform').value = randomWave;
+
+                // 2) LFO
+                const lfoRateVal = randFloat(0, 20);
+                document.getElementById('lfoRate').value = lfoRateVal.toFixed(1);
+                document.getElementById('lfoRate').dispatchEvent(new Event('input'));
+
+                const lfoAmountVal = randFloat(-5000, 5000);
+                document.getElementById('lfoAmount').value = Math.floor(lfoAmountVal);
+                document.getElementById('lfoAmount').dispatchEvent(new Event('input'));
+
+                // lfoTarget => 'cutoff' or 'pitch'
+                const targets = ['cutoff','pitch'];
+                const randomTarget = targets[randInt(0, targets.length - 1)];
+                document.getElementById('lfoTarget').value = randomTarget;
+                // We'll just store it
+                this.lfoTarget = randomTarget;
+
+                // 3) Master Volume
+                const vol = randFloat(0, 1);
+                document.getElementById('masterVolume').value = vol.toFixed(2);
+                document.getElementById('masterVolume').dispatchEvent(new Event('input'));
+
+                // 4) Filter: cutoff (20..20000), resonance (0..30)
+                const cutoffVal = randFloat(20, 20000);
+                document.getElementById('cutoff').value = Math.floor(cutoffVal);
+                document.getElementById('cutoff').dispatchEvent(new Event('input'));
+
+                const resonanceVal = randFloat(0, 30);
+                document.getElementById('resonance').value = Math.floor(resonanceVal);
+                document.getElementById('resonance').dispatchEvent(new Event('input'));
+
+                // 5) Amp Envelope (attack, decay, sustain, release)
+                const atk = randFloat(0, 2);
+                document.getElementById('attack').value = atk.toFixed(2);
+                document.getElementById('attack').dispatchEvent(new Event('input'));
+
+                const dec = randFloat(0, 2);
+                document.getElementById('decay').value = dec.toFixed(2);
+                document.getElementById('decay').dispatchEvent(new Event('input'));
+
+                const sus = randFloat(0, 1);
+                document.getElementById('sustain').value = sus.toFixed(2);
+                document.getElementById('sustain').dispatchEvent(new Event('input'));
+
+                const rel = randFloat(0, 2);
+                document.getElementById('release').value = rel.toFixed(2);
+                document.getElementById('release').dispatchEvent(new Event('input'));
+
+                // 6) Filter Envelope
+                const fAtk = randFloat(0, 2);
+                document.getElementById('fAttack').value = fAtk.toFixed(2);
+                document.getElementById('fAttack').dispatchEvent(new Event('input'));
+
+                const fDec = randFloat(0, 2);
+                document.getElementById('fDecay').value = fDec.toFixed(2);
+                document.getElementById('fDecay').dispatchEvent(new Event('input'));
+
+                const fSus = randFloat(0, 1);
+                document.getElementById('fSustain').value = fSus.toFixed(2);
+                document.getElementById('fSustain').dispatchEvent(new Event('input'));
+
+                const fRel = randFloat(0, 2);
+                document.getElementById('fRelease').value = fRel.toFixed(2);
+                document.getElementById('fRelease').dispatchEvent(new Event('input'));
+
+                const fAmt = randFloat(-10000, 10000);
+                document.getElementById('fAmount').value = Math.floor(fAmt);
+                document.getElementById('fAmount').dispatchEvent(new Event('input'));
+
+                // 7) Pitch Envelope
+                const pAtk = randFloat(0, 2);
+                document.getElementById('pAttack').value = pAtk.toFixed(2);
+                document.getElementById('pAttack').dispatchEvent(new Event('input'));
+
+                const pDec = randFloat(0, 2);
+                document.getElementById('pDecay').value = pDec.toFixed(2);
+                document.getElementById('pDecay').dispatchEvent(new Event('input'));
+
+                const pSus = randFloat(0, 1);
+                document.getElementById('pSustain').value = pSus.toFixed(2);
+                document.getElementById('pSustain').dispatchEvent(new Event('input'));
+
+                const pRel = randFloat(0, 2);
+                document.getElementById('pRelease').value = pRel.toFixed(2);
+                document.getElementById('pRelease').dispatchEvent(new Event('input'));
+
+                const pAmt = randFloat(-1200, 1200);
+                document.getElementById('pAmount').value = Math.floor(pAmt);
+                document.getElementById('pAmount').dispatchEvent(new Event('input'));
+            }
+
+            /*
+             * Export to WAV using OfflineAudioContext for 16 steps => one measure
+             */
+            exportToWav() {
+                const sampleRate = 44100;
+                const totalDuration = 16 * this.stepInterval;
+
+                const offlineContext = new OfflineAudioContext(2, sampleRate * (totalDuration + 2), sampleRate);
+
+                // Re-create signal chain
+                const offlineFilter = offlineContext.createBiquadFilter();
+                offlineFilter.type = 'lowpass';
+
+                const offlineMainGain = offlineContext.createGain();
+                offlineFilter.connect(offlineMainGain);
+                offlineMainGain.connect(offlineContext.destination);
+
+                offlineFilter.frequency.value = parseFloat(document.getElementById('cutoff').value);
+                offlineFilter.Q.value = parseFloat(document.getElementById('resonance').value);
+                offlineMainGain.gain.value = parseFloat(document.getElementById('masterVolume').value);
+
+                // Steps data
+                const stepsToRender = JSON.parse(JSON.stringify(this.steps));
+
+                // LFO in offline context
+                const offlineLfo = offlineContext.createOscillator();
+                const offlineLfoGain = offlineContext.createGain();
+                offlineLfo.connect(offlineLfoGain);
+                offlineLfo.start(0);
+
+                offlineLfo.frequency.value = parseFloat(document.getElementById('lfoRate').value);
+                offlineLfoGain.gain.value = parseFloat(document.getElementById('lfoAmount').value);
+
+                const lfoTarget = this.lfoTarget;
+                const waveform = document.getElementById('waveform').value;
+
+                // Envelope slider values
+                const env = {
+                    attack: parseFloat(document.getElementById('attack').value),
+                    decay: parseFloat(document.getElementById('decay').value),
+                    sustain: parseFloat(document.getElementById('sustain').value),
+                    release: parseFloat(document.getElementById('release').value),
+                };
+                const fEnv = {
+                    attack: parseFloat(document.getElementById('fAttack').value),
+                    decay: parseFloat(document.getElementById('fDecay').value),
+                    sustain: parseFloat(document.getElementById('fSustain').value),
+                    release: parseFloat(document.getElementById('fRelease').value),
+                    amount: parseFloat(document.getElementById('fAmount').value),
+                    baseCutoff: offlineFilter.frequency.value
+                };
+                const pEnv = {
+                    attack: parseFloat(document.getElementById('pAttack').value),
+                    decay: parseFloat(document.getElementById('pDecay').value),
+                    sustain: parseFloat(document.getElementById('pSustain').value),
+                    release: parseFloat(document.getElementById('pRelease').value),
+                    amount: parseFloat(document.getElementById('pAmount').value),
+                };
+
+                // Create offline noise buffer
+                const createOfflineNoiseBuffer = (ctx) => {
+                    const sr = ctx.sampleRate;
+                    const bufferSize = sr * 2;
+                    const buffer = ctx.createBuffer(1, bufferSize, sr);
+                    const data = buffer.getChannelData(0);
+                    for(let i=0; i<bufferSize; i++){
+                        data[i] = Math.random()*2 - 1;
+                    }
+                    return buffer;
+                };
+                const noiseBuffer = createOfflineNoiseBuffer(offlineContext);
+
+                // Helper to schedule step
+                const renderStep = (stepObj, stepIdx) => {
+                    if(!stepObj.active || !stepObj.note) return;
+                    const stepTime = stepIdx * this.stepInterval;
+                    const velocity = stepObj.velocity;
+                    const baseFreq = this.notes[stepObj.note] || 440;
+
+                    if(waveform === 'noise'){
+                        const noiseSource = offlineContext.createBufferSource();
+                        noiseSource.buffer = noiseBuffer;
+                        noiseSource.loop = true;
+
+                        // Amp
+                        const ampGain = offlineContext.createGain();
+                        const velFactor = velocity / 127;
+                        ampGain.gain.setValueAtTime(0, stepTime);
+                        ampGain.gain.linearRampToValueAtTime(1 * velFactor, stepTime + env.attack);
+                        ampGain.gain.linearRampToValueAtTime(env.sustain * velFactor, stepTime + env.attack + env.decay);
+                        ampGain.gain.linearRampToValueAtTime(0, stepTime + env.attack + env.decay + env.release);
+
+                        noiseSource.connect(ampGain);
+                        ampGain.connect(offlineFilter);
+
+                        // LFO => pitch does nothing, cutoff => connect to filter freq
+                        offlineLfoGain.disconnect();
+                        if(lfoTarget === 'pitch'){
+                            // do nothing
+                        } else {
+                            offlineLfoGain.connect(offlineFilter.frequency);
+                        }
+
+                        // Filter Env
+                        offlineFilter.frequency.cancelScheduledValues(stepTime);
+                        offlineFilter.frequency.setValueAtTime(fEnv.baseCutoff, stepTime);
+
+                        const filterPeak = fEnv.baseCutoff + fEnv.amount;
+                        offlineFilter.frequency.linearRampToValueAtTime(filterPeak, stepTime + fEnv.attack);
+                        const filterSustain = fEnv.baseCutoff + (fEnv.amount * fEnv.sustain);
+                        offlineFilter.frequency.linearRampToValueAtTime(filterSustain, stepTime + fEnv.attack + fEnv.decay);
+                        offlineFilter.frequency.linearRampToValueAtTime(
+                            fEnv.baseCutoff, 
+                            stepTime + fEnv.attack + fEnv.decay + fEnv.release
+                        );
+
+                        noiseSource.start(stepTime);
+                        noiseSource.stop(stepTime + env.attack + env.decay + env.release + 0.1);
+                    } else {
+                        // Normal oscillator
+                        const osc = offlineContext.createOscillator();
+                        osc.type = waveform;
+
+                        const freqParam = osc.frequency;
+                        freqParam.cancelScheduledValues(stepTime);
+                        freqParam.setValueAtTime(baseFreq, stepTime);
+
+                        // pitch env
+                        const semitoneToMultiplier = (semi) => Math.pow(2, semi / 12);
+                        const freqPeak = baseFreq * semitoneToMultiplier(pEnv.amount);
+                        freqParam.linearRampToValueAtTime(freqPeak, stepTime + pEnv.attack);
+                        const freqSustain = baseFreq + (freqPeak - baseFreq) * pEnv.sustain;
+                        freqParam.linearRampToValueAtTime(freqSustain, stepTime + pEnv.attack + pEnv.decay);
+                        freqParam.linearRampToValueAtTime(
+                            baseFreq, 
+                            stepTime + pEnv.attack + pEnv.decay + pEnv.release
+                        );
+
+                        const ampGain = offlineContext.createGain();
+                        const velFactor = velocity / 127;
+                        ampGain.gain.setValueAtTime(0, stepTime);
+                        ampGain.gain.linearRampToValueAtTime(1 * velFactor, stepTime + env.attack);
+                        ampGain.gain.linearRampToValueAtTime(env.sustain * velFactor, stepTime + env.attack + env.decay);
+                        ampGain.gain.linearRampToValueAtTime(0, stepTime + env.attack + env.decay + env.release);
+
+                        osc.connect(ampGain);
+                        ampGain.connect(offlineFilter);
+
+                        offlineLfoGain.disconnect();
+                        if(lfoTarget === 'pitch'){
+                            offlineLfoGain.connect(freqParam);
+                        } else {
+                            offlineLfoGain.connect(offlineFilter.frequency);
+                        }
+
+                        // Filter Env
+                        offlineFilter.frequency.cancelScheduledValues(stepTime);
+                        offlineFilter.frequency.setValueAtTime(fEnv.baseCutoff, stepTime);
+
+                        const filterPeak = fEnv.baseCutoff + fEnv.amount;
+                        offlineFilter.frequency.linearRampToValueAtTime(filterPeak, stepTime + fEnv.attack);
+                        const filterSustain = fEnv.baseCutoff + (fEnv.amount * fEnv.sustain);
+                        offlineFilter.frequency.linearRampToValueAtTime(filterSustain, stepTime + fEnv.attack + fEnv.decay);
+                        offlineFilter.frequency.linearRampToValueAtTime(
+                            fEnv.baseCutoff, 
+                            stepTime + fEnv.attack + fEnv.decay + fEnv.release
+                        );
+
+                        osc.start(stepTime);
+                        osc.stop(stepTime + env.attack + env.decay + env.release + 0.1);
+                    }
+                };
+
+                // Loop each step
+                for(let i=0; i<16; i++){
+                    renderStep(stepsToRender[i], i);
+                }
+
+                // Render
+                offlineContext.startRendering().then( renderedBuffer => {
+                    const wavData = this.bufferToWav(renderedBuffer, 16);
+                    const blob = new Blob([wavData], { type: 'audio/wav' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'kretzonizer_export.wav';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+            }
+
+            bufferToWav(abuffer, bitsPerSample) {
+                const numOfChannels = abuffer.numberOfChannels,
+                      sampleRate = abuffer.sampleRate,
+                      format = 1; // PCM
+                const samples = abuffer.length;
+                const blockAlign = numOfChannels * bitsPerSample / 8;
+                const byteRate = sampleRate * blockAlign;
+                
+                // WAV header + data
+                const buffer = new ArrayBuffer(44 + samples * blockAlign);
+                const view = new DataView(buffer);
+
+                this.writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + samples * blockAlign, true);
+                this.writeString(view, 8, 'WAVE');
+                this.writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, format, true);
+                view.setUint16(22, numOfChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, byteRate, true);
+                view.setUint16(32, blockAlign, true);
+                view.setUint16(34, bitsPerSample, true);
+                this.writeString(view, 36, 'data');
+                view.setUint32(40, samples * blockAlign, true);
+
+                let offset = 44;
+                for (let i = 0; i < samples; i++) {
+                    for (let ch = 0; ch < numOfChannels; ch++) {
+                        let sample = abuffer.getChannelData(ch)[i];
+                        if (sample > 1) sample = 1;
+                        else if (sample < -1) sample = -1;
+                        sample = sample * 32767; 
+                        view.setInt16(offset, sample, true);
+                        offset += 2;
+                    }
+                }
+                return buffer;
+            }
+
+            writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+        }
+
+        // Initialize the Kretzonizer on page load
+        window.addEventListener('load', () => {
+            new StepSequencer();
+        });
+    </script>
+</body>
+</html>
